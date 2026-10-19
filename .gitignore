@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Secrets and local config
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor and OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build and test output
+dist/
+build/
+coverage/
+*.tmp

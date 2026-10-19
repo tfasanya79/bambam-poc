@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DocDiff Reviewer</title>
+    <meta name="description" content="Compare two versions of a document and review what actually changed." />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <h1>DocDiff Reviewer</h1>
+        <p class="tagline">Compare two versions of a document and see what actually changed.</p>
+      </div>
+      <div class="engine" id="engine" aria-live="polite">checking engine…</div>
+    </header>
+
+    <main>
+      <section class="inputs" aria-label="Documents to compare">
+        <article class="pane">
+          <div class="pane-head">
+            <h2>Before</h2>
+            <div class="pane-actions">
+              <button type="button" class="ghost" data-sample="v1">Load sample</button>
+              <label class="file">
+                Choose file
+                <input type="file" id="file-before" accept=".md,.txt,text/plain" />
+              </label>
+            </div>
+          </div>
+          <textarea
+            id="before"
+            spellcheck="false"
+            aria-label="Original document text"
+            placeholder="Paste the original document here, or load the sample."
+          ></textarea>
+        </article>
+
+        <article class="pane">
+          <div class="pane-head">
+            <h2>After</h2>
+            <div class="pane-actions">
+              <button type="button" class="ghost" data-sample="v2">Load sample</button>
+              <label class="file">
+                Choose file
+                <input type="file" id="file-after" accept=".md,.txt,text/plain" />
+              </label>
+            </div>
+          </div>
+          <textarea
+            id="after"
+            spellcheck="false"
+            aria-label="Revised document text"
+            placeholder="Paste the revised document here, or load the sample."
+          ></textarea>
+        </article>
+      </section>
+
+      <div class="runbar">
+        <button id="compare" class="primary" disabled>Compare documents</button>
+        <span id="status" class="status" role="status" aria-live="polite"></span>
+      </div>
+
+      <section id="results" class="results" hidden>
+        <div id="stats" class="stats"></div>
+
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="changes" role="tab" aria-selected="true">Changes</button>
+          <button class="tab" data-tab="memo" role="tab" aria-selected="false">Review memo</button>
+        </div>
+
+        <div id="tab-changes" class="tabpanel">
+          <div id="cards" class="cards"></div>
+        </div>
+
+        <div id="tab-memo" class="tabpanel" hidden>
+          <pre id="memo" class="memo"></pre>
+          <button id="download" class="ghost">Download memo (.md)</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Deterministic diff first, model judgement second.</span>
+      <a href="/README.md" target="_blank" rel="noreferrer">README</a>
+    </footer>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
