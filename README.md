@@ -65,8 +65,8 @@ reviewer should ask.
 Requirements: **Node.js 20.12 or newer.** Nothing else.
 
 ```bash
-git clone https://github.com/<your-username>/docdiff-reviewer.git
-cd docdiff-reviewer
+git clone https://github.com/tfasanya79/bambam-poc.git
+cd bambam-poc
 npm start
 ```
 
