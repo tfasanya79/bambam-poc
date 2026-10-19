@@ -20,12 +20,15 @@
       <section class="inputs" aria-label="Documents to compare">
         <article class="pane">
           <div class="pane-head">
-            <h2>Before</h2>
+            <div class="pane-title">
+              <h2>Before</h2>
+              <span class="pane-file" id="before-file">nothing loaded</span>
+            </div>
             <div class="pane-actions">
-              <button type="button" class="ghost" data-sample="v1">Load sample</button>
+              <button type="button" class="ghost" data-sample="v1">Sample</button>
               <label class="file">
-                Choose file
-                <input type="file" id="file-before" accept=".md,.txt,text/plain" />
+                Upload
+                <input type="file" id="file-before" accept=".pdf,.docx,.md,.txt,text/plain" />
               </label>
             </div>
           </div>
@@ -33,18 +36,21 @@
             id="before"
             spellcheck="false"
             aria-label="Original document text"
-            placeholder="Paste the original document here, or load the sample."
+            placeholder="Upload the original PDF, Word or Markdown file, or paste its text here."
           ></textarea>
         </article>
 
         <article class="pane">
           <div class="pane-head">
-            <h2>After</h2>
+            <div class="pane-title">
+              <h2>After</h2>
+              <span class="pane-file" id="after-file">nothing loaded</span>
+            </div>
             <div class="pane-actions">
-              <button type="button" class="ghost" data-sample="v2">Load sample</button>
+              <button type="button" class="ghost" data-sample="v2">Sample</button>
               <label class="file">
-                Choose file
-                <input type="file" id="file-after" accept=".md,.txt,text/plain" />
+                Upload
+                <input type="file" id="file-after" accept=".pdf,.docx,.md,.txt,text/plain" />
               </label>
             </div>
           </div>
@@ -52,10 +58,14 @@
             id="after"
             spellcheck="false"
             aria-label="Revised document text"
-            placeholder="Paste the revised document here, or load the sample."
+            placeholder="Upload the revised PDF, Word or Markdown file, or paste its text here."
           ></textarea>
         </article>
       </section>
+
+      <p class="formats">Accepts PDF, Word (.docx), Markdown and plain text, up to 10&nbsp;MB each.</p>
+
+      <div id="notice" class="notice" hidden></div>
 
       <div class="runbar">
         <button id="compare" class="primary" disabled>Compare documents</button>
@@ -65,13 +75,22 @@
       <section id="results" class="results" hidden>
         <div id="stats" class="stats"></div>
 
-        <div class="tabs" role="tablist">
-          <button class="tab active" data-tab="changes" role="tab" aria-selected="true">Changes</button>
-          <button class="tab" data-tab="memo" role="tab" aria-selected="false">Review memo</button>
+        <div class="toolbar">
+          <div id="filters" class="filters" role="group" aria-label="Filter by materiality">
+            <span class="filter-label">Show</span>
+            <button type="button" class="chip active" data-filter="all">All</button>
+            <button type="button" class="chip" data-filter="material">High + medium</button>
+            <button type="button" class="chip" data-filter="high">High only</button>
+          </div>
+          <div class="tabs" role="tablist">
+            <button class="tab active" data-tab="changes" role="tab" aria-selected="true">Changes</button>
+            <button class="tab" data-tab="memo" role="tab" aria-selected="false">Review memo</button>
+          </div>
         </div>
 
         <div id="tab-changes" class="tabpanel">
           <div id="cards" class="cards"></div>
+          <p id="filtered-note" class="filtered-note" hidden></p>
         </div>
 
         <div id="tab-memo" class="tabpanel" hidden>

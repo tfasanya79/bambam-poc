@@ -1,0 +1,51 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 1546 >>
+stream
+BT /F1 16 Tf 56 760 Td (Remote Work and Data Access Policy) Tj ET
+BT /F1 16 Tf 56 726 Td (1. Purpose) Tj ET
+BT /F1 11 Tf 56 692 Td (This policy explains how employees may work remotely and how they access company systems) Tj ET
+BT /F1 11 Tf 56 677 Td (while off-site. It applies to all full-time and part-time staff.) Tj ET
+BT /F1 16 Tf 56 650 Td (2. Approved locations) Tj ET
+BT /F1 11 Tf 56 616 Td (Employees must work from a company-approved location. Approved locations are the home) Tj ET
+BT /F1 11 Tf 56 601 Td (office, a company office, or a client site registered with IT.) Tj ET
+BT /F1 16 Tf 56 574 Td (3. Password and authentication) Tj ET
+BT /F1 11 Tf 56 540 Td (All employees must rotate their account passwords every 60 days. Multi-factor) Tj ET
+BT /F1 11 Tf 56 525 Td (authentication is required for every system that stores customer data.) Tj ET
+BT /F1 16 Tf 56 498 Td (4. Device requirements) Tj ET
+BT /F1 11 Tf 56 464 Td (Laptops used for remote work must have full-disk encryption enabled and automatic screen) Tj ET
+BT /F1 11 Tf 56 449 Td (lock after 10 minutes of inactivity.) Tj ET
+BT /F1 11 Tf 56 422 Td (Control  |  Requirement) Tj ET
+BT /F1 11 Tf 56 407 Td (Disk encryption  |  Mandatory) Tj ET
+BT /F1 11 Tf 56 392 Td (Screen lock  |  10 minutes) Tj ET
+BT /F1 11 Tf 56 377 Td (Backup  |  Weekly) Tj ET
+BT /F1 16 Tf 56 350 Td (5. Reporting a lost device) Tj ET
+BT /F1 11 Tf 56 316 Td (An employee must report a lost or stolen device to the IT service desk within 24 hours) Tj ET
+BT /F1 11 Tf 56 301 Td (of discovery.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000001839 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1936
+%%EOF

@@ -3,16 +3,15 @@
 Compare two versions of a document side by side, and get back a review memo that says
 **what changed** and **which changes actually matter**.
 
-A small, self-contained proof of concept. No cloud account, no database, no build step,
-no dependencies: `node server.js` and you are running.
+Runs as a small local web app. Upload a PDF, a Word file, or paste text; get back a review.
+No account, no database, no cloud, and no API key required.
 
 ```
-before.md ─┐
-           ├─► [1] parse into blocks ─► [2] align + diff ─► changes.json
-after.md  ─┘                            (no model, always exact)
-                                                              │
-                                                              ▼
-              [4] review memo ◄── [3] classify each change (rules, or a model)
+before.pdf/docx/md ─┐
+                    ├─► [0] extract text ─► [1] parse into blocks ─► [2] align + diff ─► changes
+after.pdf/docx/md  ─┘                             (no model, always exact)              │
+                                                                                        ▼
+                          [4] review memo ◄── [3] classify each change (rules, or a model)
 ```
 
 ---
@@ -38,48 +37,46 @@ This project splits that job at the point where each technique is strong:
 
 ---
 
-## How it works
-
-**Step 1 — Parse into blocks.** Both documents are split into addressable blocks:
-headings, paragraphs, list items, table rows. Every block gets a stable ID
-(`before-7`, `after-7`) and remembers which section it belongs to.
-
-**Step 2 — Align, then diff.** Blocks are matched up first, so inserting one paragraph
-near the top does not mark the rest of the document as changed. Inside each changed
-block, a word-level diff shows exactly which words moved.
-
-**Step 3 — Classify each change.** Every changed region is judged for category
-(`numbers`, `obligation`, `definition`, `scope`, `formatting`, `wording`) and
-materiality (`high`, `medium`, `low`). This runs on plain rules by default. If you add an
-API key it runs on a language model instead, and silently falls back to the rules if a
-request fails.
-
-**Step 4 — Write the memo.** Verified findings are assembled into a short Markdown review:
-summary counts, a table of changes, detail on the ones that matter, and the questions a
-reviewer should ask.
-
----
-
 ## Quick start
 
-Requirements: **Node.js 20.12 or newer.** Nothing else.
+Requirements: **Node.js 20.12 or newer.**
 
 ```bash
 git clone https://github.com/tfasanya79/bambam-poc.git
 cd bambam-poc
+npm install
 npm start
 ```
 
-There is no `npm install` step: the app has zero runtime dependencies.
+The terminal then prints two addresses:
 
-Open <http://localhost:4310>, click **Load sample** above each text area, then
-**Compare documents**.
+```
+  Local:     http://localhost:4310
+  Share:     http://192.168.1.204:4310   (WiFi)
+```
 
-> No screenshot is committed yet. Capture the sample comparison at 1280px wide, save it as
-> `docs/screenshot.png`, and embed it here. Tracked as `M8-2` in
-> [REQUIREMENTS.md](REQUIREMENTS.md).
+Open the **Local** address, click **Sample** above each pane, then **Compare documents**.
 
-### What you should see
+The two runtime dependencies (`mammoth` for Word, `pdfjs-dist` for PDF) are used only to
+read files into text. The comparison engine itself has none, which is why it works offline.
+
+### Sharing it with your team
+
+The server listens on all interfaces, so a colleague on the same network opens the **Share**
+address in their browser. Nothing else to install on their machine.
+
+If the Share address does not load for them, Windows Firewall is blocking inbound
+connections to Node. Allow it once:
+
+```powershell
+New-NetFirewallRule -DisplayName "DocDiff Reviewer" -Direction Inbound -LocalPort 4310 -Protocol TCP -Action Allow
+```
+
+Set `HOST=127.0.0.1` in `.env` to keep it local-only instead.
+
+---
+
+## What you should see
 
 Comparing `samples/policy-v1.md` with `samples/policy-v2.md` produces seven changes:
 
@@ -97,41 +94,40 @@ That last row is worth a look. `This policy` became `This Policy` and the tool *
 report it, because comparison is case-insensitive on purpose. Only the comma shows up.
 Suppressing noise like that is most of the value.
 
-### Command line
+The same file pair converted to Word and to PDF produces **the same seven findings**. That is
+asserted in `test/extract.test.js`, so it stays true.
 
-```bash
-# check what engine is active
-curl http://localhost:4310/api/health
+---
 
-# compare two files
-curl -s http://localhost:4310/api/compare \
-  -H 'content-type: application/json' \
-  -d "{\"before\": $(jq -Rs . < samples/policy-v1.md), \"after\": $(jq -Rs . < samples/policy-v2.md)}" \
-  | jq -r .memo
-```
+## Working with real documents
 
-### Tests
+| Format | Support | Notes |
+|---|---|---|
+| `.docx` | Good | Headings, lists and tables are recovered, so sections stay meaningful |
+| `.pdf` | Good for text PDFs | Paragraph breaks are inferred from line spacing; headings from font size |
+| `.md`, `.txt` | Exact | Best fidelity, since no extraction is needed |
+| Scanned PDF | **Not supported** | Image-only files need OCR first. The app detects this and says so instead of returning an empty diff |
 
-```bash
-npm test
-```
+Uploads are capped at 10 MB per document. If extraction finds almost no text, the app warns
+you above the compare button rather than quietly reporting "no changes".
 
-Six assertions cover the alignment rules the diff engine depends on, including the two that
-matter most: an inserted paragraph must not mark the rest of the document as changed, and a
-capitalisation-only edit must not be reported.
+Two honest caveats about PDF: complex multi-column layouts and table borders may be read in
+the wrong order, and a document with no clear spacing between paragraphs may arrive as one
+long block. Check the extracted text in the pane before trusting the diff on a new document
+family.
 
 ---
 
 ## Turning on a language model (optional)
 
-The app is fully useful without one. The rules engine is deterministic and free, and on
-this sample it already finds every material change.
+The app is fully useful without one. The rules engine is deterministic and free, and on this
+sample it already finds every material change.
 
 A model helps with the judgement calls rules cannot see. The clearest example is in the
-sample: the backup row changed from **Weekly** to **Daily**. The rules engine reports that
-as a low-materiality wording change, because no digit changed. A model reads it as a
-material change to a recovery objective. Both answers are honest; only one is what a
-reviewer would want.
+sample: the backup row changed from **Weekly** to **Daily**. The rules engine reports that as
+a low-materiality wording change, because no digit changed. A model reads it as a material
+change to a recovery objective. Both answers are honest; only one is what a reviewer would
+want.
 
 ```bash
 cp .env.example .env
@@ -139,9 +135,9 @@ cp .env.example .env
 npm start
 ```
 
-Any OpenAI-compatible endpoint works, including Azure OpenAI, OpenRouter, and a local
-Ollama server. Set `OPENAI_BASE_URL` and `MODEL` accordingly. Set `ENABLE_LLM=0` to force
-the rules path back on.
+Any OpenAI-compatible endpoint works, including Azure OpenAI, OpenRouter, and a local Ollama
+server. Set `OPENAI_BASE_URL` and `MODEL` accordingly. Set `ENABLE_LLM=0` to force the rules
+path back on.
 
 Classification runs four requests at a time, each with a 30 second timeout. If a request
 fails, that one change falls back to rules and says so in the UI, so a bad key or a rate
@@ -153,12 +149,14 @@ limit never loses the comparison.
 
 | Path | Responsibility |
 |---|---|
-| `server.js` | Zero-dependency HTTP server, three routes, static files |
-| `src/diff.js` | Parse, align, word diff. Contains no model calls at all. |
+| `server.js` | HTTP server: three routes, static files, LAN binding |
+| `src/extract.js` | PDF, Word and text extraction. The only place that knows about file formats |
+| `src/diff.js` | Parse, align, word diff. Contains no model calls at all |
 | `src/agent.js` | Change classification: rules engine plus optional model backend |
 | `src/report.js` | Builds the Markdown review memo from findings |
 | `public/` | The web UI: plain HTML, CSS and ES modules |
-| `test/` | Alignment and diff assertions, using Node's built-in test runner |
+| `scripts/make-fixtures.mjs` | Regenerates the DOCX and PDF test fixtures from the samples |
+| `test/` | Diff and extraction assertions, using Node's built-in test runner |
 | `samples/` | Two versions of a policy document used in the demo |
 | `docs/` | Architecture notes and screenshots |
 | `REQUIREMENTS.md` | Scoped roadmap: every task is sized to an afternoon or less |
@@ -168,11 +166,27 @@ limit never loses the comparison.
 | Route | Purpose |
 |---|---|
 | `GET /api/health` | Reports which classification engine is active |
+| `POST /api/extract` | Raw file body plus an `x-filename` header → `{ text, info }` |
 | `POST /api/compare` | `{ before, after, beforeName?, afterName?, useLLM? }` → findings, stats, memo |
 | `GET /samples/:file` | Serves the demo documents |
 
-`POST /api/compare` answers `400` when either document is missing and `422` when a document
-is too large to align, with a readable explanation in both cases.
+`POST /api/extract` answers `415` for an unsupported type, `413` when a file is too large and
+`400` when the body is empty. `POST /api/compare` answers `400` when either document is
+missing and `422` when a document is too large to align. Every error is a readable sentence.
+
+### Tests
+
+```bash
+npm test
+```
+
+Nine assertions across two files. They cover the alignment behaviour the diff engine depends
+on, and they assert that DOCX and PDF extraction recover exactly the same seven changes as
+the Markdown baseline.
+
+```bash
+npm run fixtures   # regenerate test/fixtures from samples/*.md
+```
 
 ---
 
@@ -182,10 +196,10 @@ is too large to align, with a readable explanation in both cases.
    The model is only ever asked to judge, never to report what changed.
 2. **Quote, do not paraphrase.** Every finding carries block IDs and verbatim text, so a
    reviewer can check it in seconds.
-3. **Degrade, do not fail.** No key, no network, a timeout, a malformed model response:
-   the comparison still completes and the UI says which engine produced each finding.
-4. **Small surface.** Zero dependencies, no build step, no database. You can read the whole
-   thing in one sitting.
+3. **Degrade, do not fail.** No key, no network, a timeout, a malformed model response, or a
+   badly scanned PDF: the app says what went wrong and still gives you what it has.
+4. **Dependencies at the edges only.** File parsing needs libraries; the comparison engine
+   needs nothing.
 
 ---
 
@@ -193,16 +207,18 @@ is too large to align, with a readable explanation in both cases.
 
 These are deliberate choices for a proof of concept, not oversights.
 
-- **Markdown and plain text only.** PDF and Word need an extraction layer first, and
-  scanned PDFs need OCR before any of this is meaningful. See `M7` in the roadmap.
+- **Scanned PDFs are not supported.** No OCR. The app detects image-only files and says so.
 - **Capitalisation-only edits are invisible.** Comparison is case-insensitive, so
   `policy` → `Policy` is not reported. This is intentional noise suppression, but it does
   mean a change in a proper noun's casing will not be flagged.
 - **The rules engine reads numbers, not intent.** `Weekly` → `Daily` looks like a wording
   tweak to a regex. Use the model path for documents where that matters.
+- **PDF paragraphs are inferred.** Extraction groups text lines by vertical spacing. Unusual
+  layouts can merge or split paragraphs.
 - **Single language.** The modal verbs and limit keywords are English-only.
 - **Nothing is stored.** No history, no users, no database. Two documents in, one memo out.
-- **Not hardened for the internet.** No authentication, no rate limiting. Run it locally.
+- **Not hardened for the internet.** No authentication, no rate limiting, no TLS. It is built
+  to run on a trusted local network, not to be exposed publicly.
 
 ---
 
@@ -212,9 +228,9 @@ These are deliberate choices for a proof of concept, not oversights.
 size estimate. The short version:
 
 - A verification pass that re-checks each finding and drops false positives (`M4`)
-- DOCX and PDF input (`M7`)
-- A labelled test set so classification quality is measured, not asserted (`M6`)
-- Side-by-side scrolling review view with accept/reject per card (`M8`)
+- Accept/reject per change card, so stakeholder feedback is captured (`M7-3`)
+- A labelled test set so classification quality is measured, not asserted (`M5`)
+- Optional login, if it ever needs to leave the local network
 
 ---
 

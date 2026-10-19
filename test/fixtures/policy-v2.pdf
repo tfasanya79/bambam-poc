@@ -1,0 +1,55 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 1837 >>
+stream
+BT /F1 16 Tf 56 760 Td (Remote Work and Data Access Policy) Tj ET
+BT /F1 16 Tf 56 726 Td (1. Purpose) Tj ET
+BT /F1 11 Tf 56 692 Td (This Policy explains how employees may work remotely, and how they access company) Tj ET
+BT /F1 11 Tf 56 677 Td (systems while off-site. It applies to all full-time and part-time staff.) Tj ET
+BT /F1 16 Tf 56 650 Td (2. Approved locations) Tj ET
+BT /F1 11 Tf 56 616 Td (Employees should work from a company-approved location. Approved locations are the home) Tj ET
+BT /F1 11 Tf 56 601 Td (office, a company office, or a client site registered with IT, subject to manager) Tj ET
+BT /F1 11 Tf 56 586 Td (approval.) Tj ET
+BT /F1 16 Tf 56 559 Td (3. Password and authentication) Tj ET
+BT /F1 11 Tf 56 525 Td (All employees must rotate their account passwords every 90 days. Multi-factor) Tj ET
+BT /F1 11 Tf 56 510 Td (authentication is required for every system that stores customer data.) Tj ET
+BT /F1 16 Tf 56 483 Td (4. Device requirements) Tj ET
+BT /F1 11 Tf 56 449 Td (Laptops used for remote work must have full-disk encryption enabled and automatic screen) Tj ET
+BT /F1 11 Tf 56 434 Td (lock after 5 minutes of inactivity.) Tj ET
+BT /F1 11 Tf 56 407 Td (Control  |  Requirement) Tj ET
+BT /F1 11 Tf 56 392 Td (Disk encryption  |  Mandatory) Tj ET
+BT /F1 11 Tf 56 377 Td (Screen lock  |  5 minutes) Tj ET
+BT /F1 11 Tf 56 362 Td (Backup  |  Daily) Tj ET
+BT /F1 16 Tf 56 335 Td (5. Reporting a lost device) Tj ET
+BT /F1 11 Tf 56 301 Td (An employee must report a lost or stolen device to the IT service desk within 48 hours) Tj ET
+BT /F1 11 Tf 56 286 Td (of discovery.) Tj ET
+BT /F1 16 Tf 56 259 Td (6. Data residency) Tj ET
+BT /F1 11 Tf 56 225 Td (Customer data must remain in the European Union region. Copying customer data to a) Tj ET
+BT /F1 11 Tf 56 210 Td (system outside the EU is prohibited.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000002130 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+2227
+%%EOF

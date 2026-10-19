@@ -8,11 +8,12 @@ so this document explains the *why* rather than restating the code.
 ## Shape of the system
 
 ```
-             ┌──────────────────────────────────────────────────────────┐
-  HTTP       │  server.js                                               │
-  request ──►│    POST /api/compare  →  compare()  →  classifyChanges() │
-             │                              →  buildMemo()              │
-             └───────────┬──────────────────────┬───────────────────────┘
+             ┌───────────────────────────────────────────────────────────────┐
+  HTTP       │  server.js                                                    │
+  request ──►│    POST /api/extract  →  extractText()  (PDF, DOCX, text)     │
+             │    POST /api/compare  →  compare() → classifyChanges()        │
+             │                       →  buildMemo()                          │
+             └───────────┬──────────────────────┬────────────────────────────┘
                          │                      │
                     src/diff.js            src/agent.js
                   (deterministic)          (judgement)
@@ -20,7 +21,7 @@ so this document explains the *why* rather than restating the code.
                          └──── findings ────────┴──► src/report.js
 ```
 
-Four modules, one direction of data flow, no circular imports. `src/diff.js` imports nothing
+Five modules, one direction of data flow, no circular imports. `src/diff.js` imports nothing
 from the rest of the app and makes no network calls, which is what makes it testable in
 isolation and trustworthy in the middle of a pipeline that does call a model.
 
@@ -82,6 +83,31 @@ guess about which path ran.
 
 ---
 
+## Extraction is the lossy boundary
+
+Everything before `parseBlocks()` is format-specific and everything after it is not. That
+boundary is `src/extract.js`, and it is the only file that imports `mammoth` or `pdfjs-dist`.
+
+Both extractors aim to produce **Markdown-shaped text**, not plain prose, because the block
+parser keys off Markdown conventions:
+
+- **DOCX** is converted to HTML by mammoth, then translated: headings become `#`, list items
+  become `-`, table rows become pipe-delimited rows. This preserves section context, which is
+  what lets a finding say "3. Password and authentication" instead of "somewhere in the
+  document".
+- **PDF** has no structure to recover, so it is inferred. Text items are grouped into visual
+  lines by their vertical position, lines are merged into paragraphs when the gap between them
+  is smaller than `1.6 x` the median font size, and a line set in a noticeably larger font is
+  emitted as a heading. It is a heuristic, and it is why PDF fidelity is "good" rather than
+  "exact".
+
+The rule that keeps this honest: **when extraction finds almost nothing, say so**. A scanned
+PDF extracts to an empty string, which would compare as "no changes" and look like a pass. So
+`extractText()` returns a `warning` whenever the result is under 40 characters, and the UI
+shows it before the user presses compare.
+
+---
+
 ## Why align before diffing
 
 A naive line diff on two document versions is wrong in a specific and destructive way: one
@@ -120,7 +146,8 @@ to the single change that hit it.
 
 | To change | Edit | Note |
 |---|---|---|
-| How blocks are detected | `classifyKind()` in `src/diff.js` | Markdown conventions today; swap for a DOCX parser and everything downstream is unchanged |
+| How blocks are detected | `classifyKind()` in `src/diff.js` | Markdown conventions today; everything downstream is format-agnostic |
+| Support a new file type | `extractText()` in `src/extract.js` | Return Markdown-shaped text and nothing else in the app needs to change |
 | How changes are scored | `classifyWithRules()` in `src/agent.js` | Ordered strongest-signal-first; add rules above the generic ones |
 | Which model is used | `.env` only | Any OpenAI-compatible endpoint |
 | The memo wording | `src/report.js` | Pure string assembly from findings, no I/O |

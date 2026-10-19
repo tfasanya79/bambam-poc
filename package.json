@@ -10,7 +10,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "fixtures": "node scripts/make-fixtures.mjs"
   },
   "keywords": [
     "document-comparison",
@@ -19,5 +20,9 @@
     "poc",
     "llm"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "mammoth": "^1.13.0",
+    "pdfjs-dist": "^6.4.299"
+  }
 }

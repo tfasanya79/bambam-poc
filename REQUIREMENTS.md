@@ -16,11 +16,12 @@ be finished in an afternoon, it is split until it can.
 
 | ID | Requirement | Done when | Size | Status |
 |---|---|---|---|---|
-| M0-1 | Run with one command | `npm start` serves the UI on `http://localhost:4310` with no install step | S | Done |
-| M0-2 | Zero runtime dependencies | `package.json` lists no `dependencies`, and the app starts after a fresh clone | S | Done |
+| M0-1 | Run with two commands | `npm install` then `npm start` serves the UI on `http://localhost:4310` | S | Done |
+| M0-2 | Dependencies kept at the edges | Only `mammoth` and `pdfjs-dist` are installed, and both are used solely for file extraction | S | Done |
 | M0-3 | Health endpoint | `GET /api/health` returns the active classification engine | S | Done |
 | M0-4 | Clear README | A reader who has never seen the repo can run it and read the output without help | S | Done |
 | M0-5 | Sample documents | Two sample files demonstrate every change category in the UI | S | Done |
+| M0-6 | Share on the local network | Startup prints a reachable LAN address, and a colleague can open the app from another machine | S | Done |
 
 ## Milestone 1 — Exact difference detection
 
@@ -52,7 +53,7 @@ be finished in an afternoon, it is split until it can.
 | M3-2 | Optional model backend | Setting `OPENAI_API_KEY` switches classification to a model with no code change | M | Done |
 | M3-3 | Per-change fallback | A failed model request falls back to rules for that change and labels the source | S | Done |
 | M3-4 | Engine visibility | The UI shows which engine produced each card | S | Done |
-| M3-5 | Filter by materiality | A reviewer can hide `low` changes in one click | S | Next |
+| M3-5 | Filter by materiality | A reviewer can hide `low` changes in one click | S | Done |
 | M3-6 | Tune rules from real documents | Misclassifications found on three real document pairs are fixed in the rules | M | Next |
 
 ## Milestone 4 — Trust
@@ -78,10 +79,12 @@ trusting the whole list.
 
 | ID | Requirement | Done when | Size | Status |
 |---|---|---|---|---|
-| M6-1 | Word documents | `.docx` uploads are converted to blocks, including table rows | M | Later |
-| M6-2 | Text-based PDFs | Text PDFs are extracted to blocks with page numbers kept as section hints | M | Later |
-| M6-3 | Scanned PDFs | Out of scope until text extraction is solved; needs OCR, which is a different project | L | Later |
+| M6-1 | Word documents | `.docx` uploads become blocks with headings, lists and table rows preserved | M | Done |
+| M6-2 | Text-based PDFs | Text PDFs extract into paragraphs, with headings inferred from font size | M | Done |
+| M6-3 | Detect scanned PDFs | Image-only files are reported clearly instead of returning an empty diff | S | Done |
 | M6-4 | Drag and drop | Dropping a file on a pane loads it | S | Later |
+| M6-5 | OCR for scans | Text is recovered from scanned PDFs, not just detected as missing | L | Later |
+| M6-6 | Multi-column PDFs | Two-column layouts extract in reading order | M | Later |
 
 ## Milestone 7 — Beyond two documents
 
@@ -114,9 +117,11 @@ The proof of concept is considered proven when all of the following are true:
 1. A reviewer who did not build it can run it from the README with no help.
 2. On the sample pair, every material change is found, and nothing is reported that is not
    in the documents.
-3. On one real document pair from the reviewer's own work, they find at least one change
+3. The same seven changes are found when the sample is supplied as Word and as PDF.
+4. A colleague on the same network can open the app and complete a comparison unaided.
+5. On one real document pair from the reviewer's own work, they find at least one change
    they would otherwise have missed.
-4. The memo is short enough to read in two minutes.
-5. With no API key and no network, the app still completes a comparison with useful output.
+6. The memo is short enough to read in two minutes.
+7. With no API key and no network, the app still completes a comparison with useful output.
 
-Items 1, 2, 4 and 5 hold today. Item 3 needs a real document pair: pick one this week.
+Items 1, 2, 3, 4, 6 and 7 hold today. Item 5 needs a real document pair: pick one this week.

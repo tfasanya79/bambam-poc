@@ -1,4 +1,4 @@
-/** Front-end glue: collect two documents, post them, render the review. */
+/** Front-end glue: load two documents, post them, render the review. */
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -12,10 +12,17 @@ const cardsEl = $('#cards');
 const memoEl = $('#memo');
 const engineEl = $('#engine');
 const downloadBtn = $('#download');
+const noticeEl = $('#notice');
+const filteredNoteEl = $('#filtered-note');
+
+const beforeFileEl = $('#before-file');
+const afterFileEl = $('#after-file');
 
 let beforeName = 'before.md';
 let afterName = 'after.md';
 let lastMemo = '';
+let lastFindings = [];
+let activeFilter = 'all';
 
 const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ESCAPES[c]);
@@ -23,6 +30,17 @@ const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ESCAPES[c]
 function setStatus(message, isError = false) {
   statusEl.textContent = message;
   statusEl.classList.toggle('error', isError);
+}
+
+function showNotice(message, tone = 'warn') {
+  if (!message) {
+    noticeEl.hidden = true;
+    noticeEl.textContent = '';
+    return;
+  }
+  noticeEl.hidden = false;
+  noticeEl.textContent = message;
+  noticeEl.dataset.tone = tone;
 }
 
 function syncButton() {
@@ -55,11 +73,14 @@ document.querySelectorAll('[data-sample]').forEach((button) => {
       const text = await response.text();
       if (version === 'v1') {
         beforeEl.value = text;
-        beforeName = `policy-v${version}.md`;
+        beforeName = `policy-${version}.md`;
+        beforeFileEl.textContent = beforeName;
       } else {
         afterEl.value = text;
-        afterName = `policy-v${version}.md`;
+        afterName = `policy-${version}.md`;
+        afterFileEl.textContent = afterName;
       }
+      showNotice('');
       syncButton();
       setStatus('');
     } catch (error) {
@@ -68,25 +89,58 @@ document.querySelectorAll('[data-sample]').forEach((button) => {
   });
 });
 
-function wireFilePicker(inputSelector, textarea, setName) {
+/**
+ * Upload a file, ask the server to extract its text, then drop that text into
+ * the pane. Extraction is lossy, so any warning is surfaced rather than hidden.
+ */
+async function loadFile(file, side) {
+  const textarea = side === 'before' ? beforeEl : afterEl;
+  const label = side === 'before' ? beforeFileEl : afterFileEl;
+
+  setStatus(`Reading ${file.name}…`);
+  showNotice('');
+  compareBtn.disabled = true;
+
+  try {
+    const response = await fetch('/api/extract', {
+      method: 'POST',
+      headers: { 'x-filename': encodeURIComponent(file.name) },
+      body: file,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || `Could not read ${file.name}.`);
+
+    textarea.value = data.text;
+    if (side === 'before') beforeName = file.name;
+    else afterName = file.name;
+    label.textContent = file.name;
+
+    const chars = data.text.length;
+    const pages = data.info?.pages ? `, ${data.info.pages} page${data.info.pages === 1 ? '' : 's'}` : '';
+    setStatus(`${file.name}: ${chars.toLocaleString()} characters read${pages}.`);
+
+    if (data.info?.warning) showNotice(data.info.warning, 'warn');
+    else if (chars < 300) showNotice('Very little text was found in that file. Check the preview below before comparing.', 'warn');
+  } catch (error) {
+    setStatus(error.message, true);
+    showNotice(error.message, 'error');
+  } finally {
+    syncButton();
+  }
+}
+
+function wireFilePicker(inputSelector, side) {
   const input = $(inputSelector);
   input.addEventListener('change', async () => {
     const file = input.files?.[0];
     if (!file) return;
-    const text = await file.text();
-    textarea.value = text;
-    setName(file.name);
-    syncButton();
-    setStatus(`${file.name} loaded.`);
+    await loadFile(file, side);
+    input.value = '';
   });
 }
 
-wireFilePicker('#file-before', beforeEl, (name) => {
-  beforeName = name;
-});
-wireFilePicker('#file-after', afterEl, (name) => {
-  afterName = name;
-});
+wireFilePicker('#file-before', 'before');
+wireFilePicker('#file-after', 'after');
 
 /* ---------------- compare ---------------- */
 
@@ -159,15 +213,70 @@ function renderCard(finding) {
   `;
 }
 
-function render(data) {
-  const findings = data.findings ?? [];
+function matchesFilter(finding) {
+  if (activeFilter === 'high') return finding.materiality === 'high';
+  if (activeFilter === 'material') return finding.materiality !== 'low';
+  return true;
+}
+
+function renderCards() {
+  const visible = lastFindings.filter(matchesFilter);
+
+  if (lastFindings.length === 0) {
+    cardsEl.innerHTML = '<div class="empty">The two documents match at block level. Nothing to review.</div>';
+    filteredNoteEl.hidden = true;
+    return;
+  }
+
+  if (visible.length === 0) {
+    cardsEl.innerHTML = '<div class="empty">No changes at this materiality level.</div>';
+  } else {
+    cardsEl.innerHTML = visible.map(renderCard).join('');
+  }
+
+  const hidden = lastFindings.length - visible.length;
+  filteredNoteEl.hidden = hidden === 0;
+  filteredNoteEl.textContent =
+    hidden === 0 ? '' : `${hidden} change${hidden === 1 ? '' : 's'} hidden by the current filter.`;
+}
+
+function updateFilterCounts() {
   const counts = {
-    high: findings.filter((f) => f.materiality === 'high').length,
-    medium: findings.filter((f) => f.materiality === 'medium').length,
+    all: lastFindings.length,
+    material: lastFindings.filter((f) => f.materiality !== 'low').length,
+    high: lastFindings.filter((f) => f.materiality === 'high').length,
+  };
+  document.querySelectorAll('#filters .chip').forEach((chip) => {
+    const key = chip.dataset.filter;
+    const label = { all: 'All', material: 'High + medium', high: 'High only' }[key];
+    chip.textContent = `${label} (${counts[key]})`;
+  });
+}
+
+document.querySelectorAll('#filters .chip').forEach((chip) => {
+  chip.addEventListener('click', () => {
+    activeFilter = chip.dataset.filter;
+    document.querySelectorAll('#filters .chip').forEach((other) => {
+      other.classList.toggle('active', other === chip);
+    });
+    renderCards();
+  });
+});
+
+function render(data) {
+  lastFindings = data.findings ?? [];
+  activeFilter = 'all';
+  document.querySelectorAll('#filters .chip').forEach((chip) => {
+    chip.classList.toggle('active', chip.dataset.filter === 'all');
+  });
+
+  const counts = {
+    high: lastFindings.filter((f) => f.materiality === 'high').length,
+    medium: lastFindings.filter((f) => f.materiality === 'medium').length,
   };
 
   statsEl.innerHTML = [
-    stat(findings.length, 'changes'),
+    stat(lastFindings.length, 'changes'),
     stat(data.stats.modified, 'modified'),
     stat(data.stats.added, 'added'),
     stat(data.stats.removed, 'removed'),
@@ -175,10 +284,8 @@ function render(data) {
     stat(counts.medium, 'medium'),
   ].join('');
 
-  cardsEl.innerHTML =
-    findings.length === 0
-      ? '<div class="empty">The two documents match at block level. Nothing to review.</div>'
-      : findings.map(renderCard).join('');
+  updateFilterCounts();
+  renderCards();
 
   lastMemo = data.memo ?? '';
   memoEl.textContent = lastMemo;
