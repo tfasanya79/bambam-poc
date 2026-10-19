@@ -27,6 +27,15 @@ test('extraction recovers the same changes from DOCX and PDF as from Markdown', 
   }
 });
 
+test('an image-only PDF is reported as a scan, never as an empty document', async () => {
+  const { text, info } = await extractFixture('scanned-v1.pdf');
+  assert.equal(text.length, 0, 'a scan has no text layer to extract');
+  assert.equal(info.pages, 1);
+  assert.ok(info.warning, 'a scan must produce a warning');
+  assert.match(info.warning, /scan/i);
+  assert.match(info.warning, /OCR/i);
+});
+
 test('plain text is passed through untouched', async () => {
   const { text, info } = await extractText(Buffer.from('# T\n\nHello.\n'), 'notes.md');
   assert.equal(info.kind, 'text');

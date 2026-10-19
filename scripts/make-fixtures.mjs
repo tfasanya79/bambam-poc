@@ -276,6 +276,59 @@ function buildPdf(blocks) {
 
 /* ------------------------------------------------------------------ */
 
+/**
+ * An image-only PDF: one page, one image XObject, zero text operators.
+ * This is what a scanned document looks like to the extractor, and it is the
+ * fixture behind the "this PDF is a scan" message.
+ */
+function buildScannedPdf() {
+  const width = 16;
+  const height = 16;
+  const pixels = Buffer.alloc(width * height * 3);
+  for (let i = 0; i < pixels.length; i++) pixels[i] = (i * 37) % 256;
+
+  const content = 'q 540 0 0 720 36 36 cm /Im1 Do Q';
+  const latin1 = (text) => Buffer.from(text, 'latin1');
+
+  const objects = [
+    latin1('<< /Type /Catalog /Pages 2 0 R >>'),
+    latin1('<< /Type /Pages /Kids [3 0 R] /Count 1 >>'),
+    latin1(
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>',
+    ),
+    latin1(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`),
+    Buffer.concat([
+      latin1(
+        `<< /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length ${pixels.length} >>\nstream\n`,
+      ),
+      pixels,
+      latin1('\nendstream'),
+    ]),
+  ];
+
+  const chunks = [latin1('%PDF-1.4\n')];
+  let offset = chunks[0].length;
+  const offsets = [];
+
+  objects.forEach((body, index) => {
+    const head = latin1(`${index + 1} 0 obj\n`);
+    const tail = latin1('\nendobj\n');
+    offsets.push(offset);
+    chunks.push(head, body, tail);
+    offset += head.length + body.length + tail.length;
+  });
+
+  chunks.push(latin1(`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`));
+  for (const value of offsets) {
+    chunks.push(latin1(`${String(value).padStart(10, '0')} 00000 n \n`));
+  }
+  chunks.push(
+    latin1(`trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${offset}\n%%EOF\n`),
+  );
+
+  return Buffer.concat(chunks);
+}
+
 async function main() {
   await mkdir(FIXTURES, { recursive: true });
 
@@ -291,6 +344,10 @@ async function main() {
 
     console.log(`policy-${version}: ${blocks.length} blocks -> .docx ${docx.length} bytes, .pdf ${pdf.length} bytes`);
   }
+
+  const scanned = buildScannedPdf();
+  await writeFile(path.join(FIXTURES, 'scanned-v1.pdf'), scanned);
+  console.log(`scanned-v1: image-only PDF, ${scanned.length} bytes (no text layer)`);
 }
 
 main().catch((error) => {

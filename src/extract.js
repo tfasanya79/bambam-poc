@@ -205,6 +205,45 @@ function paragraphsFromItems(items) {
   return blocks.join('\n\n');
 }
 
+/**
+ * Work out *why* a PDF yielded no text. "It is probably a scan" is a guess; the
+ * page operators tell us the answer, and the right remedy differs sharply:
+ * a scan needs OCR, a broken text layer needs a different export.
+ */
+async function explainEmptyPdf(document, pdfjs, pageCount) {
+  const ops = pdfjs.OPS ?? {};
+  const numbers = (values) => values.filter((value) => typeof value === 'number');
+  const imageOps = new Set(
+    numbers([ops.paintImageXObject, ops.paintInlineImageXObject, ops.paintImageMaskXObject, ops.paintJpegXObject]),
+  );
+  const textOps = new Set(numbers([ops.showText, ops.showSpacedText]));
+
+  let images = 0;
+  let textRuns = 0;
+
+  try {
+    for (let pageNumber = 1; pageNumber <= Math.min(pageCount, 3); pageNumber++) {
+      const page = await document.getPage(pageNumber);
+      const operatorList = await page.getOperatorList();
+      for (const fn of operatorList.fnArray ?? []) {
+        if (imageOps.has(fn)) images += 1;
+        else if (textOps.has(fn)) textRuns += 1;
+      }
+      page.cleanup();
+    }
+  } catch {
+    return 'Almost no text could be read from this PDF. It may be a scan, which needs OCR before it can be compared.';
+  }
+
+  if (textRuns === 0 && images > 0) {
+    return 'This PDF is a scan: the page is an image with no text layer at all. It needs OCR, or a text or Word version of the same document.';
+  }
+  if (textRuns > 0) {
+    return 'This PDF contains text, but none of it could be decoded. That usually means unusual embedded font encoding. Try exporting the document as Word, or re-saving it as a fresh PDF.';
+  }
+  return 'This PDF has no readable text and no images. It may be empty, or an unsupported PDF variant.';
+}
+
 async function extractPdf(buffer, base) {
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
 
@@ -224,30 +263,28 @@ async function extractPdf(buffer, base) {
   });
 
   const document = await loadingTask.promise;
+  const pageCount = document.numPages;
   const pages = [];
+
   try {
-    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber++) {
+    for (let pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
       const page = await document.getPage(pageNumber);
       const content = await page.getTextContent();
       pages.push(paragraphsFromItems(content.items ?? []));
       page.cleanup();
     }
+
+    const clean = cleanup(pages.join('\n\n'));
+    const warning = clean.length < MIN_USEFUL_CHARS ? await explainEmptyPdf(document, pdfjs, pageCount) : null;
+
+    return { text: clean, info: { ...base, kind: 'pdf', pages: pageCount, warning } };
+  } catch (error) {
+    if (error?.name === 'PasswordException') {
+      throw new Error('this PDF is password protected. Remove the password and upload it again');
+    }
+    throw error;
   } finally {
     await document.cleanup?.();
     await loadingTask.destroy();
   }
-
-  const clean = cleanup(pages.join('\n\n'));
-  return {
-    text: clean,
-    info: {
-      ...base,
-      kind: 'pdf',
-      pages: document.numPages,
-      warning:
-        clean.length < MIN_USEFUL_CHARS
-          ? 'Almost no text could be read from this PDF. It is most likely a scan, which needs OCR before it can be compared.'
-          : null,
-    },
-  };
 }
